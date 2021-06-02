@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,7 @@ import (
 
 const (
 	dDir = "/data"
+	rDir = "/result"
 )
 
 var (
@@ -50,17 +52,21 @@ func main() {
 	for _, f := range files {
 		f, err := ioutil.ReadFile(wd + dDir + "/donate/" + f.Name())
 		checkError(err)
-
 		sf := strings.Split(string(f), "\n")
-
-		log.Println(sf)
-
 		results = append(results, sf...)
 	}
 
 	log.Println("Result Count:", len(results))
+
+	// Extract to struct
 	err = extract(results)
 	checkError(err)
+	log.Println("Data Extracted")
+
+	// Convert to csv
+	err = convertToCsv(resultsExtracted)
+	checkError(err)
+	log.Println("Csv Successfully Created")
 }
 
 func extract(d []string) error {
@@ -84,5 +90,31 @@ func extract(d []string) error {
 		resultsExtracted = append(resultsExtracted, ext)
 	}
 
+	return nil
+}
+
+func convertToCsv(d []dataExtract) error {
+	wd, err := os.Getwd()
+	checkError(err)
+
+	// Create csv result file
+	file, err := os.Create(wd + rDir + "/result.csv")
+	checkError(err)
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write header to csv
+	h := []string{"Date", "Nickname", "Value"}
+	err = writer.Write(h)
+	checkError(err)
+
+	// Store data to csv
+	for _, value := range d {
+		dt := []string{value.date, value.nickname, value.data}
+		err := writer.Write(dt)
+		checkError(err)
+	}
 	return nil
 }
